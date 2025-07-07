@@ -7,7 +7,7 @@ class CityBase(BaseModel):
 
 class CityResponse(CityBase):
     id: int
-    cover_photo_url: Optional[str] = None  # Simples, derivado de `photo_url`
+    cover_photo_url: Optional[str] = None
 
     class Config:
         orm_mode = True
