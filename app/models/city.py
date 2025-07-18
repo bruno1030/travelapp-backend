@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db import Base
-from app.models.photo import Photo
+from app.models.photo import Photo  # Para garantir que a relação será carregada corretamente
 
 class City(Base):
     __tablename__ = "cities"
@@ -11,4 +11,5 @@ class City(Base):
     country = Column(String, nullable=False)
     cover_photo_id = Column(Integer, ForeignKey("photos.id", ondelete="SET NULL"), nullable=True)
 
-    cover_photo = relationship("Photo", foreign_keys=[cover_photo_id])
+    # Aqui definimos a relação de forma explícita
+    cover_photo = relationship("Photo", foreign_keys=[cover_photo_id], uselist=False)
