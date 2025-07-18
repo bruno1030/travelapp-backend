@@ -1,11 +1,13 @@
 from fastapi import FastAPI
 from app.routers import cities
 from app.routers import photos
+from app.routers import users
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 app.include_router(cities.router)
 app.include_router(photos.router)
+app.include_router(users.router)
 
 # Configurar o middleware CORS
 app.add_middleware(

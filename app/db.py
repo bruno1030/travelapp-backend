@@ -1,20 +1,19 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-# URL de conexão com o PostgreSQL
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:1234590@localhost:5432/postgres"
+# Carrega as variáveis de ambiente do .env
+load_dotenv()
 
-# Criação do engine
+# Lê a URL do banco a partir do .env
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
-
-# Sessão do banco de dados
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Classe base dos modelos
 Base = declarative_base()
 
-# Dependência que será usada nas rotas
 def get_db():
     db = SessionLocal()
     try:
