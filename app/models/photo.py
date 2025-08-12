@@ -6,6 +6,7 @@ class Photo(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     image_url = Column(String, nullable=False)
-    city_id = Column(Integer, nullable=False)
+    city_id = Column(Integer, nullable=True)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
+    user_id = Column(Integer, nullable=True)
