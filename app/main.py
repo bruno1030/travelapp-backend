@@ -1,15 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import cities
-from app.routers import photos
-from app.routers import users
+from app.routers import cities, photos, users, cloudinary
 
 app = FastAPI()
 
+v1_prefix = "/v1/api"
+
 # Inclusão das rotas
-app.include_router(cities.router)
-app.include_router(photos.router)
-app.include_router(users.router)
+app.include_router(cities.router, prefix=v1_prefix, tags=["CitiesRouter"])
+app.include_router(photos.router, prefix=v1_prefix, tags=["PhotosRouter"])
+app.include_router(users.router, prefix=v1_prefix, tags=["UsersRouter"])
+app.include_router(cloudinary.router, prefix=v1_prefix, tags=["CloudinaryRouter"])
 
 # Configurar o middleware CORS
 app.add_middleware(
