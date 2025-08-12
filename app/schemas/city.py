@@ -15,4 +15,4 @@ class CityResponse(CityBase):
     translations: Optional[List[TranslationResponse]] = []  # Lista de traduções
 
     class Config:
-        orm_mode = True
+        from_attributes = True
