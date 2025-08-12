@@ -9,10 +9,9 @@ class PhotoResponse(BaseModel):
     longitude: float
     user_id: int
 
-    model_config = {
-        "from_attributes": True
-    }
-
+    class Config:
+        from_attributes = True
+        
 class PhotoCreate(BaseModel):
     image_url: str
     latitude: float
