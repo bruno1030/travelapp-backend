@@ -4,7 +4,7 @@ from app.db import get_db
 from app.models.photo import Photo
 from app.models.city import City, CityTranslation
 from app.schemas.photo import PhotoResponse, PhotoCreate
-import httpx  # para chamadas externas
+import httpx  # for external calls
 from typing import Optional
 
 router = APIRouter()
