@@ -76,16 +76,18 @@ def create_user_from_firebase(
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"Received request to create user from Firebase: {user_data.email}")
+    import logging
+    logger = logging.getLogger("app.routers.users")
 
     if not authorization.startswith("Bearer "):
+        logger.error("Invalid authorization header")
         raise HTTPException(status_code=401, detail="Invalid authorization header")
 
     id_token = authorization.split("Bearer ")[1]
 
     try:
         decoded_token = firebase_auth.verify_id_token(id_token)
-        firebase_uid = decoded_token["uid"]
+        firebase_uid = decoded_token["uid"]  # UID confiável do token
         logger.info(f"Firebase ID token verified for UID: {firebase_uid}")
     except Exception as e:
         logger.error(f"Failed to verify Firebase ID token: {str(e)}")
@@ -93,15 +95,22 @@ def create_user_from_firebase(
 
     existing_user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
     if existing_user:
+        logger.warning(f"Firebase UID already exists: {firebase_uid}")
         raise HTTPException(status_code=400, detail="Firebase UID already exists")
 
     existing_email = db.query(User).filter(User.email == user_data.email).first()
     if existing_email:
+        logger.warning(f"Email already exists: {user_data.email}")
         raise HTTPException(status_code=400, detail="Email already exists")
 
     username = user_data.username
-    if username and db.query(User).filter(User.username == username).first():
-        raise HTTPException(status_code=400, detail="Username already exists")
+    if not username or username.strip() == "":
+        username = f"user_{firebase_uid[:6]}"
+        logger.info(f"No username provided, generated provisional username: {username}")
+
+    if db.query(User).filter(User.username == username).first():
+        logger.warning(f"Generated username already exists: {username}")
+        raise HTTPException(status_code=400, detail="Generated username already exists, try again")
 
     try:
         new_user = User(
@@ -112,6 +121,7 @@ def create_user_from_firebase(
         )
         db.add(new_user)
         db.flush()
+        logger.info(f"User object added to session: {username}")
 
         user_provider = UserProvider(
             user_id=new_user.id,
@@ -121,8 +131,8 @@ def create_user_from_firebase(
         db.add(user_provider)
         db.commit()
         db.refresh(new_user)
+        logger.info(f"User successfully created in DB: {username} (UID: {firebase_uid})")
 
-        logger.info(f"User created successfully: {new_user.id}, {username}")
         return {
             "message": "User created successfully",
             "user_id": new_user.id,
