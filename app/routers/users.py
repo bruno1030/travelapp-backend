@@ -35,17 +35,13 @@ def check_email_exists(email: str, db: Session = Depends(get_db)):
             detail=EmailCheckResponse(exists=False, email=email).dict()
         )
 
-# NOVO ENDPOINT - Criar usuário após autenticação Firebase
+# Recebendo o corpo e o token
 @router.post("/users/create-from-firebase", status_code=201)
 def create_user_from_firebase(
     user_data: UserCreate,
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    """
-    Cria um novo usuário no banco após autenticação Firebase.
-    Recebe idToken no header Authorization e valida.
-    """
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid authorization header")
 
@@ -53,37 +49,33 @@ def create_user_from_firebase(
 
     try:
         decoded_token = firebase_auth.verify_id_token(id_token)
-        firebase_uid = decoded_token["uid"]
+        firebase_uid = decoded_token["uid"]  # UID confiável do token
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Invalid Firebase ID token: {str(e)}")
 
-    # Verificar se usuário já existe
+    # usar firebase_uid do token, não do corpo
     existing_user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Firebase UID already exists")
 
-    # Verificar se email já existe
     existing_email = db.query(User).filter(User.email == user_data.email).first()
     if existing_email:
         raise HTTPException(status_code=400, detail="Email already exists")
 
-    # Se username foi informado, validar se já existe
     username = user_data.username
     if username and db.query(User).filter(User.username == username).first():
         raise HTTPException(status_code=400, detail="Username already exists")
 
     try:
-        # Criar novo usuário
         new_user = User(
-            firebase_uid=firebase_uid,
+            firebase_uid=firebase_uid,  # do token
             email=user_data.email,
             username=username,
             last_login=datetime.utcnow()
         )
         db.add(new_user)
-        db.flush()  # Para obter o ID sem commit completo
+        db.flush()
 
-        # Criar registro na tabela user_providers
         user_provider = UserProvider(
             user_id=new_user.id,
             provider=user_data.provider,
@@ -99,7 +91,6 @@ def create_user_from_firebase(
             "username": username,
             "firebase_uid": new_user.firebase_uid
         }
-
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating user: {str(e)}")

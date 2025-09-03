@@ -14,7 +14,7 @@ class UserResponse(BaseModel):
 
 # Novos schemas para os endpoints
 class UserCreate(BaseModel):
-    firebase_uid: str
+    firebase_uid: Optional[str] = None  # agora opcional
     email: str
     username: Optional[str] = None
     name: Optional[str] = None
