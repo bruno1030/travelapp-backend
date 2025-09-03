@@ -104,14 +104,38 @@ def create_user_from_firebase(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating user: {str(e)}")
 
-# Endpoint buscar usuário por firebase_uid
-@router.get("/users/by-firebase-uid/{firebase_uid}", response_model=UserByFirebaseResponse)
-def get_user_by_firebase_uid(firebase_uid: str, db: Session = Depends(get_db)):
+# Endpoint buscar usuário atual via idToken
+@router.get("/users/current", response_model=UserByFirebaseResponse)
+def get_current_user(
+    authorization: str = Header(...), 
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna o usuário atual autenticado pelo Firebase ID token.
+    """
+
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+
+    id_token = authorization.split(" ")[1]
+
+    try:
+        # Verifica o token com Firebase Admin SDK
+        decoded_token = firebase_admin.auth.verify_id_token(id_token)
+        firebase_uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid ID token: {str(e)}")
+
+    # Busca o usuário no banco usando o UID confiável
     user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    # Atualiza last_login
     user.last_login = datetime.utcnow()
     db.commit()
+    db.refresh(user)
+
     return user
 
 # Buscar usuário completo por ID (debug)
