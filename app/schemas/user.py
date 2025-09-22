@@ -20,6 +20,10 @@ class UserCreate(BaseModel):
     name: Optional[str] = None
     provider: str = "email"
 
+class UserUpdateRequest(BaseModel):
+    username: Optional[str] = None
+    name: Optional[str] = None
+    
 class EmailCheckResponse(BaseModel):
     exists: bool
     email: str
