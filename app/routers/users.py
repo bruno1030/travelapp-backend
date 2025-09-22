@@ -14,7 +14,8 @@ from app.schemas.user import (
     UserCreate,
     EmailCheckResponse,
     UserCompleteResponse,
-    UserByFirebaseResponse
+    UserByFirebaseResponse,
+    UserUpdateRequest
 )
 from app.schemas.user_provider import UserProviderCreate
 
@@ -200,3 +201,51 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
 
     return {"message": "User created successfully", "user_id": new_user.id, "username": username}
+
+@router.patch("/users/update", response_model=UserResponse)
+def update_user(
+    user_update: UserUpdateRequest,
+    firebase_uid: str = Header(..., description="Firebase UID do usuário"),
+    db: Session = Depends(get_db)
+):
+    """
+    Atualiza o usuário com base no firebase_uid fornecido no header.
+    Campos opcionais que podem ser atualizados: username, name
+    """
+    if not firebase_uid or firebase_uid.strip() == "":
+        raise HTTPException(status_code=400, detail="Firebase UID é obrigatório no header")
+
+    # Busca usuário no banco
+    user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Atualiza campos se fornecidos
+    if user_update.username:
+        existing_user = (
+            db.query(User)
+            .filter(User.username == user_update.username, User.id != user.id)
+            .first()
+        )
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Username already exists")
+        user.username = user_update.username
+
+    if user_update.name:
+        user.name = user_update.name
+
+    user.updated_at = datetime.utcnow()
+
+    try:
+        db.commit()
+        db.refresh(user)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating user: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error updating user: {str(e)}")
+
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email
+    )
